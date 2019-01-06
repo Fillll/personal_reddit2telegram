@@ -1,0 +1,9 @@
+pyyaml
+praw
+telepot
+yandex.translate
+pymongo
+requests
+imgurpython
+raven
+croniter
