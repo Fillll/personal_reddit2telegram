@@ -32,7 +32,7 @@ def get_subreddit(user_id, config):
 
 @report_error
 def supply(user_id, config, is_test=False):
-    time.sleep(random.randrange(0, 1))
+    time.sleep(random.randrange(0, 40))
     reddit = praw.Reddit(
         user_agent=config['reddit']['user_agent'],
         client_id=config['reddit']['client_id'],

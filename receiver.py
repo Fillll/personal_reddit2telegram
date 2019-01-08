@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from pprint import pprint
+# from pprint import pprint
 from datetime import datetime
+import time
 
 import yaml
 
@@ -47,6 +48,7 @@ def receive_check_reply(config_filename=None):
     last_update = 0
     for update in updates:
         # pprint(update)
+        time.sleep(2)
         last_update = update['update_id']
 
         settings.find_one_and_update(
