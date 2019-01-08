@@ -4,38 +4,35 @@ import datetime
 import csv
 import logging
 from multiprocessing import Process
+from datetime import datetime
 
 import yaml
 from croniter import croniter
+import pymongo
 
 from supplier import supply
+from receiver import receive_check_reply
 
 
 logger = logging.getLogger(__name__)
 
 
-def read_own_cron(own_cron_filename, config):
-    with open(own_cron_filename) as tsv_file:
-        tsv_reader = csv.DictReader(tsv_file, delimiter='\t')
-        for row in tsv_reader:
-            now = datetime.datetime.now()
-            cron = croniter(row['MASK'])
-            # prev_run = cron.get_current(datetime.datetime)
-            prev_run = cron.get_prev(datetime.datetime)
-            prev_run = cron.get_next(datetime.datetime)
-            diff = now - prev_run
-            diff_seconds = diff.total_seconds()
-            if 0.0 <= diff_seconds and diff_seconds <= 59.9:
-                # print(row['submodule_name'], diff_seconds)
-                # supply(row['submodule_name'], config)
-                supplying_process = Process(target=supply, args=(row['submodule_name'], config))
-                supplying_process.start()
+def read_own_cron(config):
+    now = datetime.now()
+    mins = now.minute
+    users = pymongo.MongoClient(host=config['db']['host'])[config['db']['name']]['users']
+    cur_users = users.find({'minute': mins})
+    # cur_users = users.find({})
+    for item in cur_users:
+        supplying_process = Process(target=supply, args=(item['user'], config))
+        supplying_process.start()
+    receive_check_reply()
 
 
 def main(config_filename):
     with open(config_filename) as config_file:
         config = yaml.load(config_file.read())
-        read_own_cron(config['cron_file'], config)
+        read_own_cron(config)
 
 
 if __name__ == '__main__':

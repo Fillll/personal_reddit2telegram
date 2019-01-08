@@ -7,15 +7,32 @@ import time
 
 import yaml
 import praw
+import pymongo
 
 import utils
 from reporting_stuff import report_error
+from utils import weighted_random_subreddit
+
+
+def send_post(submission, r2t):
+    return r2t.send_simple(submission,
+        text='{title}\n\n{self_text}\n\n{upvotes} upvotes\n/r/{subreddit_name}\n{short_link}',
+        other='{title}\n{link}\n\n{upvotes} upvotes\n/r/{subreddit_name}\n{short_link}',
+        album='{title}\n{link}\n\n{upvotes} upvotes\n/r/{subreddit_name}\n{short_link}',
+        gif='{title}\n\n{upvotes} upvotes\n/r/{subreddit_name}\n{short_link}',
+        img='{title}\n\n{upvotes} upvotes\n/r/{subreddit_name}\n{short_link}'
+    )
+
+
+def get_subreddit(user_id, config):
+    users = pymongo.MongoClient(host=config['db']['host'])[config['db']['name']]['users']
+    user_doc = users.find_one({'user': user_id})
+    return weighted_random_subreddit(user_doc['setting'])
 
 
 @report_error
-def supply(submodule_name, config, is_test=False):
-    time.sleep(random.randrange(0, 40))
-    submodule = importlib.import_module('channels.{}.app'.format(submodule_name))
+def supply(user_id, config, is_test=False):
+    time.sleep(random.randrange(0, 1))
     reddit = praw.Reddit(
         user_agent=config['reddit']['user_agent'],
         client_id=config['reddit']['client_id'],
@@ -23,8 +40,9 @@ def supply(submodule_name, config, is_test=False):
         username=config['reddit']['username'],
         password=config['reddit']['password']
     )
-    submissions = reddit.subreddit(submodule.subreddit).hot(limit=100)
-    channel_to_post = submodule.t_channel if not is_test else '@r_channels_test'
+    subreddit = get_subreddit(user_id, config)
+    submissions = reddit.subreddit(subreddit).hot(limit=100)
+    channel_to_post = str(user_id)
     r2t = utils.Reddit2TelegramSender(channel_to_post, config)
     success = False
     for submission in submissions:
@@ -33,7 +51,7 @@ def supply(submodule_name, config, is_test=False):
             continue
         if r2t.too_much_errors(link):
             continue
-        success = submodule.send_post(submission, r2t)
+        success = send_post(submission, r2t)
         if success == utils.SupplyResult.SUCCESSFULLY:
             # Every thing is ok, post was sent
             r2t.mark_as_was_before(link, sent=True)
@@ -51,8 +69,7 @@ def supply(submodule_name, config, is_test=False):
         else:
             logging.error('Unknown SupplyResult. {}'.format(success))
     if success is False:
-        logging.info('Nothing to post from {sub} to {channel}.'.format(
-                    sub=submodule.subreddit, channel=submodule.t_channel))
+        pass
 
 
 def main(config_filename, sub, is_test=False):
