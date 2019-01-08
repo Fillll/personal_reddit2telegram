@@ -98,7 +98,8 @@ def receive_check_reply(config_filename=None):
                 "$set":
                     {
                         'setting': new_setting,
-                        'setting_update_ts': datetime.now()
+                        'setting_update_ts': datetime.now(),
+                        'minute': sum(int(digit) for digit in str(user_id)) % 40
                     }
             },
             upsert=True
