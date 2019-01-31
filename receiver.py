@@ -47,6 +47,9 @@ def receive_check_reply(config_filename=None):
 
     last_update = 0
     for update in updates:
+        last_one = settings.find_one({'settings': 1})
+        if update['update_id'] < last_one['last_update']:
+            continue
         # pprint(update)
         time.sleep(2)
         last_update = update['update_id']
