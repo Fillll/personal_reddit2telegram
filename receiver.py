@@ -42,14 +42,15 @@ def receive_check_reply(config_filename=None):
         last_update_doc = {
             'last_update': 0
         }
+        settings.insert_one({
+            'settings': 1,
+            'last_update': 0
+        })
 
     updates = r2t.telepot_bot.getUpdates(offset=last_update_doc['last_update'])
 
     last_update = 0
     for update in updates:
-        last_one = settings.find_one({'settings': 1})
-        if update['update_id'] < last_one['last_update']:
-            continue
         # pprint(update)
         time.sleep(2)
         last_update = update['update_id']
@@ -61,7 +62,7 @@ def receive_check_reply(config_filename=None):
             {
                 "$set": 
                 {
-                    'last_update': last_update + 1
+                    'last_update': last_update
                 }
             }
         )
